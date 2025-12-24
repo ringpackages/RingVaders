@@ -1,0 +1,287 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+    paths-ignore:
+      - '**/*.md'
+
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            deb_arch: amd64
+            rpm_arch: x86_64
+            artifact_suffix: amd64
+          - os: ubuntu-24.04-arm
+            deb_arch: arm64
+            rpm_arch: aarch64
+            artifact_suffix: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Ring
+        uses: ysdragon/ring-action@v1.3.2
+        with:
+          file: RingVaders.ring
+          args: -dist -allegro
+          output_exe: "true"
+
+      - name: Prepare artifact
+        run: sudo chmod +x target/linux/dist_using_scripts/bin/RingVaders
+
+      - name: Build .deb package
+        run: |
+          mkdir -p deb-pkg/DEBIAN
+          mkdir -p deb-pkg/usr/bin
+          mkdir -p deb-pkg/usr/lib
+          mkdir -p deb-pkg/usr/share/RingVaders
+          mkdir -p deb-pkg/usr/share/applications
+          mkdir -p deb-pkg/usr/share/icons/hicolor/256x256/apps
+          cp target/linux/dist_using_scripts/bin/RingVaders deb-pkg/usr/bin/
+          cp -r target/linux/dist_using_scripts/lib/* deb-pkg/usr/lib/
+          cp -r assets deb-pkg/usr/share/RingVaders/
+          cp assets/logo.png deb-pkg/usr/share/icons/hicolor/256x256/apps/RingVaders.png
+          cat > deb-pkg/usr/share/applications/RingVaders.desktop << 'EOF'
+          [Desktop Entry]
+          Name=RingVaders
+          Comment=A retro arcade shooter - Space Invaders clone
+          Exec=RingVaders
+          Icon=RingVaders
+          Terminal=false
+          Type=Application
+          Categories=Game;ArcadeGame;
+          Keywords=space;invaders;arcade;shooter;retro;
+          EOF
+          sed -i 's/^          //' deb-pkg/usr/share/applications/RingVaders.desktop
+          cat > deb-pkg/DEBIAN/control << 'EOF'
+          Package: RingVaders
+          Version: ${GITHUB_REF_NAME#v}
+          Section: games
+          Priority: optional
+          Architecture: ${{ matrix.deb_arch }}
+          Maintainer: ysdragon
+          Description: A retro arcade shooter - Space Invaders clone written in Ring
+          EOF
+          sed -i "s/\${GITHUB_REF_NAME#v}/$(echo ${GITHUB_REF_NAME} | sed 's/^v//' | grep -E '^[0-9]' || echo '1.0.0')/" deb-pkg/DEBIAN/control
+          dpkg-deb --build deb-pkg RingVaders-linux-${{ matrix.deb_arch }}.deb
+
+      - name: Build .rpm package
+        run: |
+          sudo apt-get update && sudo apt-get install -y rpm
+          mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/bin
+          mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/lib
+          mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/RingVaders
+          mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/applications
+          mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/icons/hicolor/256x256/apps
+          cp target/linux/dist_using_scripts/bin/RingVaders rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/bin/
+          cp -r target/linux/dist_using_scripts/lib/* rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/lib/
+          cp -r assets rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/RingVaders/
+          cp assets/logo.png rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/icons/hicolor/256x256/apps/RingVaders.png
+          cat > rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/applications/RingVaders.desktop << 'EOF'
+          [Desktop Entry]
+          Name=RingVaders
+          Comment=A retro arcade shooter - Space Invaders clone
+          Exec=RingVaders
+          Icon=RingVaders
+          Terminal=false
+          Type=Application
+          Categories=Game;ArcadeGame;
+          Keywords=space;invaders;arcade;shooter;retro;
+          EOF
+          sed -i 's/^          //' rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/applications/RingVaders.desktop
+          cat > rpmbuild/SPECS/RingVaders.spec << 'EOF'
+          Name: RingVaders
+          Version: 1.0.0
+          Release: 1
+          Summary: A retro arcade shooter - Space Invaders clone written in Ring
+          License: MIT
+          BuildArch: ${{ matrix.rpm_arch }}
+          
+          %description
+          A retro arcade shooter - Space Invaders clone written in Ring using RingAllegro5
+          
+          %files
+          /usr/bin/RingVaders
+          /usr/share/RingVaders
+          /usr/share/applications/RingVaders.desktop
+          /usr/share/icons/hicolor/256x256/apps/RingVaders.png
+          EOF
+          for f in target/linux/dist_using_scripts/lib/*; do
+            echo "/usr/lib/$(basename "$f")" >> rpmbuild/SPECS/RingVaders.spec
+          done
+          rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/RingVaders.spec
+          cp rpmbuild/RPMS/${{ matrix.rpm_arch }}/*.rpm RingVaders-linux-${{ matrix.rpm_arch }}.rpm
+
+      - name: Create archives
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          cd target/linux/dist_using_scripts
+          cp -r ../../../assets .
+          zip -r ../../../RingVaders-linux-${{ matrix.artifact_suffix }}.zip bin lib assets
+          tar -czvf ../../../RingVaders-linux-${{ matrix.artifact_suffix }}.tar.gz bin lib assets
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            RingVaders-linux-${{ matrix.artifact_suffix }}.zip
+            RingVaders-linux-${{ matrix.artifact_suffix }}.tar.gz
+            RingVaders-linux-${{ matrix.deb_arch }}.deb
+            RingVaders-linux-${{ matrix.rpm_arch }}.rpm
+
+  build-macos:
+    strategy:
+      matrix:
+        include:
+          - os: macos-15
+            arch: arm64
+          - os: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Ring
+        uses: ysdragon/ring-action@v1.3.2
+        with:
+          file: RingVaders.ring
+          args: -dist -allegro
+          output_exe: "true"
+          cache: ${{ matrix.os != 'macos-15-intel' }}
+
+      - name: Create .app bundle
+        run: |
+          APP_NAME="RingVaders.app"
+          mkdir -p "$APP_NAME/Contents/MacOS"
+          mkdir -p "$APP_NAME/Contents/Resources"
+          
+          # Copy executable and libs
+          cp target/macosx/bin/RingVaders "$APP_NAME/Contents/MacOS/"
+          cp -r target/macosx/lib "$APP_NAME/Contents/MacOS/"
+          cp -r assets "$APP_NAME/Contents/Resources/"
+          
+          # Create launcher script to set library path
+          mv "$APP_NAME/Contents/MacOS/RingVaders" "$APP_NAME/Contents/MacOS/RingVaders-bin"
+          cat > "$APP_NAME/Contents/MacOS/RingVaders" << 'LAUNCHER'
+          #!/bin/bash
+          DIR="$(cd "$(dirname "$0")" && pwd)"
+          export DYLD_LIBRARY_PATH="$DIR/lib:$DYLD_LIBRARY_PATH"
+          cd "$DIR/../Resources"
+          exec "$DIR/RingVaders-bin" "$@"
+          LAUNCHER
+          chmod +x "$APP_NAME/Contents/MacOS/RingVaders"
+          
+          # Convert PNG to ICNS
+          mkdir -p icon.iconset
+          sips -z 16 16 assets/logo.png --out icon.iconset/icon_16x16.png
+          sips -z 32 32 assets/logo.png --out icon.iconset/icon_16x16@2x.png
+          sips -z 32 32 assets/logo.png --out icon.iconset/icon_32x32.png
+          sips -z 64 64 assets/logo.png --out icon.iconset/icon_32x32@2x.png
+          sips -z 128 128 assets/logo.png --out icon.iconset/icon_128x128.png
+          sips -z 256 256 assets/logo.png --out icon.iconset/icon_128x128@2x.png
+          sips -z 256 256 assets/logo.png --out icon.iconset/icon_256x256.png
+          sips -z 512 512 assets/logo.png --out icon.iconset/icon_256x256@2x.png
+          sips -z 512 512 assets/logo.png --out icon.iconset/icon_512x512.png
+          sips -z 1024 1024 assets/logo.png --out icon.iconset/icon_512x512@2x.png
+          iconutil -c icns icon.iconset -o "$APP_NAME/Contents/Resources/AppIcon.icns"
+          
+          # Create Info.plist
+          cat > "$APP_NAME/Contents/Info.plist" << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleName</key>
+              <string>RingVaders</string>
+              <key>CFBundleDisplayName</key>
+              <string>RingVaders</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.ysdragon.RingVaders</string>
+              <key>CFBundleVersion</key>
+              <string>1.0.0</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0.0</string>
+              <key>CFBundleExecutable</key>
+              <string>RingVaders</string>
+              <key>CFBundleIconFile</key>
+              <string>AppIcon</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>10.13</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Create DMG
+        run: hdiutil create -volname "RingVaders" -srcfolder RingVaders.app -ov -format UDZO RingVaders-macos-${{ matrix.arch }}.dmg
+
+      - name: Create archives
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          zip -r RingVaders-macos-${{ matrix.arch }}.zip RingVaders.app
+          tar -czvf RingVaders-macos-${{ matrix.arch }}.tar.gz RingVaders.app
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            RingVaders-macos-${{ matrix.arch }}.zip
+            RingVaders-macos-${{ matrix.arch }}.tar.gz
+            RingVaders-macos-${{ matrix.arch }}.dmg
+
+  build-windows:
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            artifact_suffix: x64
+          - arch: x86
+            artifact_suffix: x86
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create resource file for icon
+        run: |
+          echo '1 ICON "assets/icon.ico"' > RingVaders.rc
+
+      - name: Setup Ring
+        uses: ysdragon/ring-action@v1.3.2
+        with:
+          file: RingVaders.ring
+          args: -dist -allegro
+          output_exe: "true"
+          arch: ${{ matrix.arch }}
+
+      - name: Copy assets
+        run: Copy-Item -Path assets -Destination target/windows/assets -Recurse
+
+      - name: Create Zip archive
+        if: startsWith(github.ref, 'refs/tags/')
+        run: Compress-Archive -Path target/windows/* -DestinationPath RingVaders-windows-${{ matrix.artifact_suffix }}.zip
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: RingVaders-windows-${{ matrix.artifact_suffix }}.zip
