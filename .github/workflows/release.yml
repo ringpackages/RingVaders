@@ -126,12 +126,21 @@ jobs:
           cp rpmbuild/RPMS/${{ matrix.rpm_arch }}/*.rpm RingVaders-linux-${{ matrix.rpm_arch }}.rpm
 
       - name: Create archives
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           cd target/linux/dist_using_scripts
-          cp -r ../../../assets .
+          sudo cp -r ../../../assets .
           zip -r ../../../RingVaders-linux-${{ matrix.artifact_suffix }}.zip bin lib assets
           tar -czvf ../../../RingVaders-linux-${{ matrix.artifact_suffix }}.tar.gz bin lib assets
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: RingVaders-linux-${{ matrix.artifact_suffix }}
+          path: |
+            RingVaders-linux-${{ matrix.artifact_suffix }}.zip
+            RingVaders-linux-${{ matrix.artifact_suffix }}.tar.gz
+            RingVaders-linux-${{ matrix.deb_arch }}.deb
+            RingVaders-linux-${{ matrix.rpm_arch }}.rpm
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -234,10 +243,18 @@ jobs:
         run: hdiutil create -volname "RingVaders" -srcfolder RingVaders.app -ov -format UDZO RingVaders-macos-${{ matrix.arch }}.dmg
 
       - name: Create archives
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           zip -r RingVaders-macos-${{ matrix.arch }}.zip RingVaders.app
           tar -czvf RingVaders-macos-${{ matrix.arch }}.tar.gz RingVaders.app
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: RingVaders-macos-${{ matrix.arch }}
+          path: |
+            RingVaders-macos-${{ matrix.arch }}.zip
+            RingVaders-macos-${{ matrix.arch }}.tar.gz
+            RingVaders-macos-${{ matrix.arch }}.dmg
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -277,8 +294,13 @@ jobs:
         run: Copy-Item -Path assets -Destination target/windows/assets -Recurse
 
       - name: Create Zip archive
-        if: startsWith(github.ref, 'refs/tags/')
         run: Compress-Archive -Path target/windows/* -DestinationPath RingVaders-windows-${{ matrix.artifact_suffix }}.zip
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: RingVaders-windows-${{ matrix.artifact_suffix }}
+          path: RingVaders-windows-${{ matrix.artifact_suffix }}.zip
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
