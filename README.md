@@ -71,7 +71,10 @@ Download the latest release for your platform from the [Releases page](https://g
 
 ## Screenshots
 
-*Coming soon*
+| | | |
+|:---:|:---:|:---:|
+| ![Menu](assets/screenshots/1.png) | ![Gameplay](assets/screenshots/2.png) |
+| ![Boss Battle](assets/screenshots/3.png) | ![Achievements](assets/screenshots/4.png) |
 
 ## License
 
