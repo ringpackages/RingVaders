@@ -52,7 +52,7 @@ jobs:
           mkdir -p deb-pkg/usr/share/icons/hicolor/256x256/apps
           cp target/linux/dist_using_scripts/bin/RingVaders deb-pkg/usr/bin/
           cp -r target/linux/dist_using_scripts/lib/* deb-pkg/usr/lib/
-          cp -r assets deb-pkg/usr/share/RingVaders/
+          rsync -a --exclude='screenshots' assets deb-pkg/usr/share/RingVaders/
           cp assets/logo.png deb-pkg/usr/share/icons/hicolor/256x256/apps/RingVaders.png
           cat > deb-pkg/usr/share/applications/RingVaders.desktop << 'EOF'
           [Desktop Entry]
@@ -89,7 +89,7 @@ jobs:
           mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/icons/hicolor/256x256/apps
           cp target/linux/dist_using_scripts/bin/RingVaders rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/bin/
           cp -r target/linux/dist_using_scripts/lib/* rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/lib/
-          cp -r assets rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/RingVaders/
+          rsync -a --exclude='screenshots' assets rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/RingVaders/
           cp assets/logo.png rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/icons/hicolor/256x256/apps/RingVaders.png
           cat > rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/applications/RingVaders.desktop << 'EOF'
           [Desktop Entry]
@@ -129,7 +129,7 @@ jobs:
       - name: Create archives
         run: |
           cd target/linux/dist_using_scripts
-          sudo cp -r ../../../assets .
+          sudo rsync -a --exclude='screenshots' ../../../assets .
           zip -r ../../../RingVaders-linux-${{ matrix.artifact_suffix }}.zip bin lib assets
           tar -czvf ../../../RingVaders-linux-${{ matrix.artifact_suffix }}.tar.gz bin lib assets
 
@@ -183,7 +183,7 @@ jobs:
           # Copy executable and libs
           cp target/macosx/bin/RingVaders "$APP_NAME/Contents/MacOS/"
           cp -r target/macosx/lib "$APP_NAME/Contents/MacOS/"
-          cp -r assets "$APP_NAME/Contents/Resources/"
+          rsync -a --exclude='screenshots' assets "$APP_NAME/Contents/Resources/"
           
           # Create launcher script to set library path
           mv "$APP_NAME/Contents/MacOS/RingVaders" "$APP_NAME/Contents/MacOS/RingVaders-bin"
@@ -292,7 +292,9 @@ jobs:
           arch: ${{ matrix.arch }}
 
       - name: Copy assets
-        run: Copy-Item -Path assets -Destination target/windows/assets -Recurse
+        run: |
+          Copy-Item -Path assets -Destination target/windows/assets -Recurse
+          Remove-Item -Path target/windows/assets/screenshots -Recurse -Force -ErrorAction SilentlyContinue
 
       - name: Create Zip archive
         run: Compress-Archive -Path target/windows/* -DestinationPath RingVaders-windows-${{ matrix.artifact_suffix }}.zip
