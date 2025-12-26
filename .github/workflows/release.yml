@@ -286,7 +286,7 @@ jobs:
         uses: ysdragon/ring-action@v1.3.2
         with:
           file: RingVaders.ring
-          args: -dist -allegro
+          args: -dist -allegro -gui
           output_exe: "true"
           arch: ${{ matrix.arch }}
 
