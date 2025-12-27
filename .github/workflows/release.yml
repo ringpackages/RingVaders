@@ -40,19 +40,34 @@ jobs:
           output_exe: "true"
 
       - name: Prepare artifact
-        run: sudo chmod +x target/linux/dist_using_scripts/bin/RingVaders
+        run: |
+          sudo chmod -R 777 target/linux/dist_using_scripts/
 
       - name: Build .deb package
         run: |
           mkdir -p deb-pkg/DEBIAN
           mkdir -p deb-pkg/usr/bin
-          mkdir -p deb-pkg/usr/lib
-          mkdir -p deb-pkg/usr/share/RingVaders
+          mkdir -p deb-pkg/opt/RingVaders/lib
           mkdir -p deb-pkg/usr/share/applications
           mkdir -p deb-pkg/usr/share/icons/hicolor/256x256/apps
-          cp target/linux/dist_using_scripts/bin/RingVaders deb-pkg/usr/bin/
-          cp -r target/linux/dist_using_scripts/lib/* deb-pkg/usr/lib/
-          rsync -a --exclude='screenshots' assets deb-pkg/usr/share/RingVaders/
+          cp target/linux/dist_using_scripts/bin/RingVaders deb-pkg/opt/RingVaders/
+          cp -r target/linux/dist_using_scripts/lib/* deb-pkg/opt/RingVaders/lib/
+          rsync -a --exclude='screenshots' assets deb-pkg/opt/RingVaders/
+
+          # Create the Wrapper Script in /usr/bin
+          cat > deb-pkg/usr/bin/RingVaders << 'WRAPPER'
+          #!/bin/sh
+          # 1. Go to the installation folder so relative asset paths work
+          cd /opt/RingVaders
+          
+          # 2. Add the local 'lib' folder to the library path
+          export LD_LIBRARY_PATH=$(pwd)/lib:$LD_LIBRARY_PATH
+          
+          # 3. Run the executable
+          exec ./RingVaders "$@"
+          WRAPPER
+          chmod +x deb-pkg/usr/bin/RingVaders
+
           cp assets/logo.png deb-pkg/usr/share/icons/hicolor/256x256/apps/RingVaders.png
           cat > deb-pkg/usr/share/applications/RingVaders.desktop << 'EOF'
           [Desktop Entry]
@@ -82,16 +97,26 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y rpm
           mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/bin
-          mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/lib
-          mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/RingVaders
-          mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/applications
-          mkdir -p rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/icons/hicolor/256x256/apps
-          cp target/linux/dist_using_scripts/bin/RingVaders rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/bin/
-          cp -r target/linux/dist_using_scripts/lib/* rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/lib/
-          rsync -a --exclude='screenshots' assets rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/RingVaders/
-          cp assets/logo.png rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/icons/hicolor/256x256/apps/RingVaders.png
-          cat > rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/applications/RingVaders.desktop << 'EOF'
+          BUILD_ROOT=rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}
+          mkdir -p $BUILD_ROOT/usr/bin
+          mkdir -p $BUILD_ROOT/opt/RingVaders/lib
+          mkdir -p $BUILD_ROOT/usr/share/applications
+          mkdir -p $BUILD_ROOT/usr/share/icons/hicolor/256x256/apps
+          cp target/linux/dist_using_scripts/bin/RingVaders $BUILD_ROOT/opt/RingVaders/
+          cp -r target/linux/dist_using_scripts/lib/* $BUILD_ROOT/opt/RingVaders/lib/
+          rsync -a --exclude='screenshots' assets $BUILD_ROOT/opt/RingVaders/
+
+          # Create Wrapper Script
+          cat > $BUILD_ROOT/usr/bin/RingVaders << 'WRAPPER'
+          #!/bin/sh
+          cd /opt/RingVaders
+          export LD_LIBRARY_PATH=$(pwd)/lib:$LD_LIBRARY_PATH
+          exec ./RingVaders "$@"
+          WRAPPER
+          chmod +x $BUILD_ROOT/usr/bin/RingVaders
+
+          cp assets/logo.png $BUILD_ROOT/usr/share/icons/hicolor/256x256/apps/RingVaders.png
+          cat > $BUILD_ROOT/usr/share/applications/RingVaders.desktop << 'EOF'
           [Desktop Entry]
           Name=RingVaders
           Comment=A retro arcade shooter - Space Invaders clone
@@ -102,7 +127,7 @@ jobs:
           Categories=Game;ArcadeGame;
           Keywords=space;invaders;arcade;shooter;retro;
           EOF
-          sed -i 's/^          //' rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}/usr/share/applications/RingVaders.desktop
+          sed -i 's/^          //' $BUILD_ROOT/usr/share/applications/RingVaders.desktop
           cat > rpmbuild/SPECS/RingVaders.spec << 'EOF'
           Name: RingVaders
           Version: 1.0.0
@@ -116,22 +141,107 @@ jobs:
           
           %files
           /usr/bin/RingVaders
-          /usr/share/RingVaders
+          /opt/RingVaders
           /usr/share/applications/RingVaders.desktop
           /usr/share/icons/hicolor/256x256/apps/RingVaders.png
           EOF
-          for f in target/linux/dist_using_scripts/lib/*; do
-            echo "/usr/lib/$(basename "$f")" >> rpmbuild/SPECS/RingVaders.spec
-          done
           rpmbuild --define "_topdir $(pwd)/rpmbuild" -bb rpmbuild/SPECS/RingVaders.spec
           cp rpmbuild/RPMS/${{ matrix.rpm_arch }}/*.rpm RingVaders-linux-${{ matrix.rpm_arch }}.rpm
 
       - name: Create archives
         run: |
-          cd target/linux/dist_using_scripts
-          sudo rsync -a --exclude='screenshots' ../../../assets .
-          zip -r ../../../RingVaders-linux-${{ matrix.artifact_suffix }}.zip bin lib assets
-          tar -czvf ../../../RingVaders-linux-${{ matrix.artifact_suffix }}.tar.gz bin lib assets
+          mkdir -p RingVaders-dist
+          cp target/linux/dist_using_scripts/bin/RingVaders RingVaders-dist/RingVaders-bin
+          cp -r target/linux/dist_using_scripts/lib RingVaders-dist/
+          rsync -a --exclude='screenshots' assets RingVaders-dist/
+          
+          # Create a relative wrapper script
+          cat > RingVaders-dist/RingVaders << 'WRAPPER'
+          #!/bin/sh
+          # Get the directory where the script is located
+          DIR="$(cd "$(dirname "$0")" && pwd)"
+          cd "$DIR"
+          export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+          exec ./RingVaders-bin "$@"
+          WRAPPER
+          chmod +x RingVaders-dist/RingVaders
+
+          zip -r RingVaders-linux-${{ matrix.artifact_suffix }}.zip RingVaders-dist
+          tar -czvf RingVaders-linux-${{ matrix.artifact_suffix }}.tar.gz RingVaders-dist
+
+      - name: Build AppImage
+        shell: bash
+        run: |
+          # 1. Install dependencies for bundling
+          sudo apt-get update
+          sudo apt-get install -y liballegro5-dev
+
+          # 2. Create AppDir structure
+          mkdir -p RingVaders.AppDir/usr/bin
+          mkdir -p RingVaders.AppDir/usr/lib
+          mkdir -p RingVaders.AppDir/usr/share/icons/hicolor/256x256/apps
+          
+          # 3. Copy application files
+          cp target/linux/dist_using_scripts/bin/RingVaders RingVaders.AppDir/usr/bin/RingVaders-bin
+          cp -r target/linux/dist_using_scripts/lib/* RingVaders.AppDir/usr/lib/
+          rsync -a --exclude='screenshots' assets RingVaders.AppDir/usr/bin/
+          
+          # 4. Bundle Allegro and transitive dependencies
+          # Exclude: glibc, graphics drivers, X11/Wayland, GTK/GLib stack, audio (system-specific), C++ runtime
+          EXCLUDE="libc\.|libm\.|libdl\.|libpthread\.|librt\.|ld-linux|linux-vdso|libstdc\\+\\+|libgcc_s"
+          EXCLUDE="$EXCLUDE|libGL\.|libEGL\.|libdrm\.|libX|libxcb|libwayland"
+          EXCLUDE="$EXCLUDE|libgtk|libgdk|libglib|libgobject|libgio|libpango|libcairo|libatk|libgmodule|libgdk_pixbuf"
+          EXCLUDE="$EXCLUDE|libmount|libblkid|libselinux|libsystemd|libdbus|libapparmor|libcap\.|libffi\."
+          EXCLUDE="$EXCLUDE|libpulse|libasound|libopenal|libsndio|libjack"
+          
+          for i in 1 2 3; do  # 3 iterations to catch nested deps
+            echo "Bundling pass $i..."
+            for lib in RingVaders.AppDir/usr/lib/*.so*; do
+              ldd "$lib" 2>/dev/null | grep "=> /" | awk '{print $3}' | while read dep; do
+                name=$(basename "$dep")
+                if [[ ! "$name" =~ ^($EXCLUDE) ]] && [ ! -f "RingVaders.AppDir/usr/lib/$name" ]; then
+                  echo "  Bundling: $name"
+                  cp "$dep" RingVaders.AppDir/usr/lib/ 2>/dev/null || true
+                fi
+              done
+            done
+          done
+          
+          # 5. Copy icon
+          cp assets/logo.png RingVaders.AppDir/usr/share/icons/hicolor/256x256/apps/RingVaders.png
+          cp assets/logo.png RingVaders.AppDir/RingVaders.png
+          
+          # 6. Verify libs are present
+          echo "=== Libraries bundled in AppImage ==="
+          ls -la RingVaders.AppDir/usr/lib/ | grep -E "ring|allegro" || echo "WARNING: No ring/allegro libs found!"
+          
+          # 7. Create AppRun script
+          cat > RingVaders.AppDir/AppRun << 'APPRUN'
+          #!/bin/sh
+          APPDIR="$(dirname "$(readlink -f "$0")")"
+          export LD_LIBRARY_PATH="$APPDIR/usr/lib:$LD_LIBRARY_PATH"
+          cd "$APPDIR/usr/bin"
+          exec ./RingVaders-bin "$@"
+          APPRUN
+          chmod +x RingVaders.AppDir/AppRun
+          
+          # 8. Create desktop entry
+          cat > RingVaders.AppDir/RingVaders.desktop << 'EOF'
+          [Desktop Entry]
+          Name=RingVaders
+          Comment=A retro arcade shooter - Space Invaders clone
+          Exec=RingVaders
+          Icon=RingVaders
+          Terminal=false
+          Type=Application
+          Categories=Game;ArcadeGame;
+          Keywords=space;invaders;arcade;shooter;retro;
+          EOF
+          
+          # 9. Download and run appimagetool
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage -O appimagetool
+          chmod +x appimagetool
+          ARCH=$(uname -m) ./appimagetool --appimage-extract-and-run RingVaders.AppDir RingVaders-linux-${{ matrix.artifact_suffix }}.AppImage
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -142,6 +252,7 @@ jobs:
             RingVaders-linux-${{ matrix.artifact_suffix }}.tar.gz
             RingVaders-linux-${{ matrix.deb_arch }}.deb
             RingVaders-linux-${{ matrix.rpm_arch }}.rpm
+            RingVaders-linux-${{ matrix.artifact_suffix }}.AppImage
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -152,6 +263,7 @@ jobs:
             RingVaders-linux-${{ matrix.artifact_suffix }}.tar.gz
             RingVaders-linux-${{ matrix.deb_arch }}.deb
             RingVaders-linux-${{ matrix.rpm_arch }}.rpm
+            RingVaders-linux-${{ matrix.artifact_suffix }}.AppImage
 
   build-macos:
     strategy:
