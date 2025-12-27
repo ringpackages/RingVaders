@@ -90,14 +90,14 @@ jobs:
           Maintainer: ysdragon
           Description: A retro arcade shooter - Space Invaders clone written in Ring
           EOF
-          sed -i "s/\${GITHUB_REF_NAME#v}/$(echo ${GITHUB_REF_NAME} | sed 's/^v//' | grep -E '^[0-9]' || echo '1.0.0')/" deb-pkg/DEBIAN/control
+          sed -i "s/\${GITHUB_REF_NAME#v}/$(echo ${GITHUB_REF_NAME} | sed 's/^v//' | grep -E '^[0-9]' || echo '1.0.1')/" deb-pkg/DEBIAN/control
           dpkg-deb --build deb-pkg RingVaders-linux-${{ matrix.deb_arch }}.deb
 
       - name: Build .rpm package
         run: |
           sudo apt-get update && sudo apt-get install -y rpm
           mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          BUILD_ROOT=rpmbuild/BUILDROOT/RingVaders-1.0.0-1.${{ matrix.rpm_arch }}
+          BUILD_ROOT=rpmbuild/BUILDROOT/RingVaders-1.0.1-1.${{ matrix.rpm_arch }}
           mkdir -p $BUILD_ROOT/usr/bin
           mkdir -p $BUILD_ROOT/opt/RingVaders/lib
           mkdir -p $BUILD_ROOT/usr/share/applications
@@ -130,7 +130,7 @@ jobs:
           sed -i 's/^          //' $BUILD_ROOT/usr/share/applications/RingVaders.desktop
           cat > rpmbuild/SPECS/RingVaders.spec << 'EOF'
           Name: RingVaders
-          Version: 1.0.0
+          Version: 1.0.1
           Release: 1
           Summary: A retro arcade shooter - Space Invaders clone written in Ring
           License: MIT
@@ -335,9 +335,9 @@ jobs:
               <key>CFBundleIdentifier</key>
               <string>com.ysdragon.RingVaders</string>
               <key>CFBundleVersion</key>
-              <string>1.0.0</string>
+              <string>1.0.1</string>
               <key>CFBundleShortVersionString</key>
-              <string>1.0.0</string>
+              <string>1.0.1</string>
               <key>CFBundleExecutable</key>
               <string>RingVaders</string>
               <key>CFBundleIconFile</key>
