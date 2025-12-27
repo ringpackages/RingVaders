@@ -5,8 +5,9 @@
 
 func loadHighScore
 	try
-		if fexists(HIGH_SCORE_FILE)
-			content = read(HIGH_SCORE_FILE)
+		savePath = getSavePath(HIGH_SCORE_FILE)
+		if fexists(savePath)
+			content = read(savePath)
 			highScore = number(content)
 			if highScore < 0 highScore = 0 ok
 		ok
@@ -16,15 +17,16 @@ func loadHighScore
 
 func saveHighScore
 	try
-		write(HIGH_SCORE_FILE, "" + highScore)
+		write(getSavePath(HIGH_SCORE_FILE), "" + highScore)
 	catch
 		# Failed to save, ignore
 	done
 
 func loadAchievements
 	try
-		if fexists(ACHIEVEMENTS_FILE)
-			content = read(ACHIEVEMENTS_FILE)
+		savePath = getSavePath(ACHIEVEMENTS_FILE)
+		if fexists(savePath)
+			content = read(savePath)
 			lines = str2list(content)
 			for line in lines
 				achievementId = trim(line)
@@ -49,7 +51,7 @@ func saveAchievements
 				content += achievements[i][:id] + nl
 			ok
 		next
-		write(ACHIEVEMENTS_FILE, content)
+		write(getSavePath(ACHIEVEMENTS_FILE), content)
 	catch
 		# Failed to save, ignore
 	done
@@ -64,3 +66,31 @@ func toggleFullscreen
 	# Update display dimensions for proper scaling
 	displayWidth = al_get_display_width(display)
 	displayHeight = al_get_display_height(display)
+
+func initSaveDir
+	# Get user home directory cross-platform
+	if isWindows()
+		home = sysget("APPDATA")
+		if home = NULL
+			home = sysget("USERPROFILE")
+		ok
+		SAVE_DIR = home + "\RingVaders\"
+	else
+		# Linux/macOS - prefer XDG_DATA_HOME, fallback to ~/.local/share
+		home = sysget("XDG_DATA_HOME")
+		if home = NULL
+			home = sysget("HOME") + "/.local/share"
+		ok
+		SAVE_DIR = home + "/ringvaders/"
+	ok
+	
+	# Create directory if it doesn't exist
+	if !fexists(SAVE_DIR)
+		systemSilent("mkdir -p " + char(34) + SAVE_DIR + char(34))
+	ok
+
+func getSavePath filename
+	if SAVE_DIR = NULL
+		initSaveDir()
+	ok
+	return SAVE_DIR + filename

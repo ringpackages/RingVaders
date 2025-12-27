@@ -17,6 +17,11 @@
 	- Dynamic music: menu, gameplay, and boss tracks
 */
 
+# Load external libraries
+
+# Load Ring standard library
+load "stdlibcore.ring"
+
 # Load Allegro game library
 load "gamelib.ring"
 
@@ -114,7 +119,8 @@ func main()
 	# Initialize entities
 	initEntities()
 	
-	# Load saved data from files
+	# Initialize save directory and load saved data
+	initSaveDir()
 	loadHighScore()
 	loadAchievements()
 	
