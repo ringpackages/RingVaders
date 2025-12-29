@@ -41,18 +41,18 @@ func initSounds
 	if musicMain = NULL ? "Warning: Could not load main music" ok
 	if musicBoss = NULL ? "Warning: Could not load boss music" ok
 	
-	# Load powerup images (BMP format for better compatibility)
-	imgPowerupShield = al_load_bitmap("assets/textures/powerup_shield.bmp")
-	imgPowerupRapid = al_load_bitmap("assets/textures/powerup_rapid.bmp")
-	imgPowerupMulti = al_load_bitmap("assets/textures/powerup_multi.bmp")
-	imgPowerupSpread = al_load_bitmap("assets/textures/powerup_spread.bmp")
-	imgPowerupLife = al_load_bitmap("assets/textures/powerup_life.bmp")
-	
-	if imgPowerupShield = NULL ? "Warning: Could not load powerup_shield.bmp" ok
-	if imgPowerupRapid = NULL ? "Warning: Could not load powerup_rapid.bmp" ok
-	if imgPowerupMulti = NULL ? "Warning: Could not load powerup_multi.bmp" ok
-	if imgPowerupSpread = NULL ? "Warning: Could not load powerup_spread.bmp" ok
-	if imgPowerupLife = NULL ? "Warning: Could not load powerup_life.bmp" ok
+	# Load powerup images
+	imgPowerupShield = al_load_bitmap("assets/textures/powerup_shield.png")
+	imgPowerupRapid = al_load_bitmap("assets/textures/powerup_rapid.png")
+	imgPowerupMulti = al_load_bitmap("assets/textures/powerup_multi.png")
+	imgPowerupSpread = al_load_bitmap("assets/textures/powerup_spread.png")
+	imgPowerupLife = al_load_bitmap("assets/textures/powerup_life.png")
+
+	if imgPowerupShield = NULL ? "Warning: Could not load powerup_shield.png" ok
+	if imgPowerupRapid = NULL ? "Warning: Could not load powerup_rapid.png" ok
+	if imgPowerupMulti = NULL ? "Warning: Could not load powerup_multi.png" ok
+	if imgPowerupSpread = NULL ? "Warning: Could not load powerup_spread.png" ok
+	if imgPowerupLife = NULL ? "Warning: Could not load powerup_life.png" ok
 
 func generateWavFile filename, freq, duration
 	# Skip generation if file already exists
