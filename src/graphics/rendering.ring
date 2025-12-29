@@ -19,6 +19,9 @@ func drawGame
 	if gameState = STATE_ACHIEVEMENTS
 		drawAchievementsScreen(offsetX)
 	ok
+	if gameState = STATE_CREDITS
+		drawCredits(offsetX)
+	ok
 	if gameState = STATE_PLAYING or gameState = STATE_WAVE_ANNOUNCE
 		drawPlayfield(offsetX, offsetY)
 		if gameState = STATE_WAVE_ANNOUNCE
@@ -583,3 +586,210 @@ func drawCRTEffect
 	if floor(frameCount / 120) % 10 = 0
 		al_draw_filled_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, al_map_rgba(255, 255, 255, 3))
 	ok
+
+func drawCredits offsetX
+	creditsTimer++
+
+	# Background gradient
+	al_draw_filled_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, al_map_rgb(10, 5, 20))
+	al_draw_filled_rectangle(0, SCREEN_HEIGHT/2, SCREEN_WIDTH, SCREEN_HEIGHT, al_map_rgb(25, 12, 40))
+
+	horizonY = SCREEN_HEIGHT * 0.6
+	gridSpeed = (creditsTimer % 60) / 60.0 * 40
+
+	# Synthwave sun
+	sunY = horizonY - 60
+	sunRadius = 80
+	for layer = 0 to 5
+		layerRadius = sunRadius - layer * 12
+		if layerRadius > 0
+			r = 255
+			g = 100 + layer * 25
+			b = 50 - layer * 8
+			if b < 0 b = 0 ok
+			al_draw_filled_circle(SCREEN_WIDTH/2, sunY, layerRadius, al_map_rgb(r, g, b))
+		ok
+	next
+	# Sun lines
+	for i = 1 to 5
+		lineY = sunY - sunRadius + 20 + (i * 22)
+		if lineY > sunY - sunRadius and lineY < sunY + sunRadius
+			al_draw_filled_rectangle(SCREEN_WIDTH/2 - sunRadius - 10, lineY,
+				SCREEN_WIDTH/2 + sunRadius + 10, lineY + 2, al_map_rgba(10, 5, 20, 180))
+		ok
+	next
+
+	# Stars
+	for i = 1 to 40
+		starX = ((i * 127 + 53) % SCREEN_WIDTH)
+		starY = ((i * 89 + 31) % floor(horizonY - 20))
+		twinkle = 150 + floor(sin(creditsTimer * 0.05 + i * 0.7) * 80)
+		al_draw_filled_circle(starX, starY, 1 + (i % 2), al_map_rgba(255, 255, 255, twinkle))
+	next
+
+	# Grid lines
+	for i = -10 to 20
+		x1 = SCREEN_WIDTH/2 + (i * 80)
+		x2 = SCREEN_WIDTH/2 + (i * 400)
+		al_draw_line(x1, horizonY, x2, SCREEN_HEIGHT, al_map_rgba(255, 0, 128, 60), 1)
+	next
+
+	for i = 0 to 12
+		factor = (i + gridSpeed/40.0)
+		yPos = horizonY + (factor * factor * 6)
+		if yPos < SCREEN_HEIGHT
+			lineAlpha = 40 + floor((yPos - horizonY) / (SCREEN_HEIGHT - horizonY) * 40)
+			al_draw_line(0, yPos, SCREEN_WIDTH, yPos, al_map_rgba(255, 0, 128, lineAlpha), 1)
+		ok
+	next
+
+	# Horizon glow
+	al_draw_filled_rectangle(0, horizonY-4, SCREEN_WIDTH, horizonY+4, al_map_rgba(0, 255, 240, 15))
+	al_draw_filled_rectangle(0, horizonY-1, SCREEN_WIDTH, horizonY+1, al_map_rgba(0, 255, 240, 40))
+
+	# Dragon entrance
+	if creditsTimer > 30
+		t = 0
+		dx = SCREEN_WIDTH/2
+		dy = SCREEN_HEIGHT/2 - 60
+
+		if creditsTimer < 110
+			t = (creditsTimer - 30) / 80.0
+			oneMinusT = 1 - t
+			t = 1 - (oneMinusT * oneMinusT * oneMinusT)
+			dx = -150 + (SCREEN_WIDTH/2 + 150) * t
+		ok
+
+		bob1 = sin(creditsTimer * 0.05) * 12
+		bob2 = sin(creditsTimer * 0.11) * 4
+		dy = dy + bob1 + bob2
+		breathScale = 1.0 + sin(creditsTimer * 0.08) * 0.03
+
+		da = 255
+		if creditsTimer < 60
+			da = floor((creditsTimer - 30) / 30.0 * 255)
+		ok
+		if creditsTimer > 480
+			da = floor((540 - creditsTimer) / 60.0 * 255)
+		ok
+
+		# Chromatic aberration
+		baseOffset = 2 + sin(creditsTimer * 0.1) * 1
+		glitchX = 0
+		if (creditsTimer % 120) < 5
+			glitchX = floor(sin(creditsTimer * 2) * 6)
+		ok
+		chromaOffset = baseOffset + glitchX
+
+		# Dragon with chromatic aberration
+		drawDragonScaled(dx - chromaOffset, dy, al_map_rgba(255, 50, 100, floor(da * 0.4)), breathScale)
+		drawDragonScaled(dx + chromaOffset, dy, al_map_rgba(50, 255, 240, floor(da * 0.4)), breathScale)
+		drawDragonScaled(dx, dy, al_map_rgba(255, 255, 255, da), breathScale)
+	ok
+
+	# Logo text
+	if creditsTimer > 160
+		textProgress = 1.0
+		if creditsTimer < 190
+			t = (creditsTimer - 160) / 30.0
+			textProgress = 1 - (1 - t) * (1 - t)
+		ok
+
+		textAlpha = 255
+		if creditsTimer > 480
+			textAlpha = floor((540 - creditsTimer) / 60.0 * 255)
+		ok
+		if textAlpha < 0 textAlpha = 0 ok
+
+		textY = SCREEN_HEIGHT/2 + 40
+		if creditsTimer < 190
+			textY = textY + floor((1 - textProgress) * 30)
+		ok
+
+		# Text glow and shadow
+		al_draw_text(fontBig, al_map_rgba(0, 255, 240, floor(textAlpha * 0.15)), SCREEN_WIDTH/2, textY, ALLEGRO_ALIGN_CENTER, "ysdragon")
+		al_draw_text(fontBig, al_map_rgba(255, 0, 128, floor(textAlpha * 0.25)), SCREEN_WIDTH/2 + 2, textY + 2, ALLEGRO_ALIGN_CENTER, "ysdragon")
+		al_draw_text(fontBig, al_map_rgba(255, 0, 128, floor(textAlpha * 0.6)), SCREEN_WIDTH/2 + 3, textY + 3, ALLEGRO_ALIGN_CENTER, "ysdragon")
+		al_draw_text(fontBig, al_map_rgba(200, 255, 255, textAlpha), SCREEN_WIDTH/2, textY, ALLEGRO_ALIGN_CENTER, "ysdragon")
+	ok
+
+	# Presents text
+	if creditsTimer > 220
+		pAlpha = 255
+		if creditsTimer < 250
+			pAlpha = floor((creditsTimer - 220) / 30.0 * 255)
+		ok
+		if creditsTimer > 480
+			pAlpha = floor((540 - creditsTimer) / 60.0 * 255)
+		ok
+		cursorStr = "presents"
+		if (creditsTimer % 40) < 20
+			cursorStr = "presents_"
+		ok
+		al_draw_text(font, al_map_rgba(180, 180, 180, pAlpha), SCREEN_WIDTH/2, SCREEN_HEIGHT/2 + 100, ALLEGRO_ALIGN_CENTER, cursorStr)
+	ok
+
+	# Copyright
+	if creditsTimer > 300
+		copyAlpha = 255
+		if creditsTimer < 360
+			copyAlpha = floor((creditsTimer - 300) / 60.0 * 255)
+		ok
+		if creditsTimer > 480
+			copyAlpha = floor((540 - creditsTimer) / 60.0 * 255)
+		ok
+		al_draw_text(font, al_map_rgba(100, 100, 150, copyAlpha), SCREEN_WIDTH/2, SCREEN_HEIGHT - 60, ALLEGRO_ALIGN_CENTER, "© 2025 ALL RIGHTS RESERVED")
+	ok
+
+	# Scanlines
+	for y = 0 to SCREEN_HEIGHT step 3
+		al_draw_line(0, y, SCREEN_WIDTH, y, al_map_rgba(0, 0, 0, 50), 1)
+	next
+
+	# Vignette
+	for i = 1 to 8
+		alpha = 40 - i * 4
+		size = i * 40
+		al_draw_filled_triangle(0, 0, size, 0, 0, size, al_map_rgba(0, 0, 0, alpha))
+		al_draw_filled_triangle(SCREEN_WIDTH, 0, SCREEN_WIDTH - size, 0, SCREEN_WIDTH, size, al_map_rgba(0, 0, 0, alpha))
+		al_draw_filled_triangle(0, SCREEN_HEIGHT, size, SCREEN_HEIGHT, 0, SCREEN_HEIGHT - size, al_map_rgba(0, 0, 0, alpha))
+		al_draw_filled_triangle(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH - size, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT - size, al_map_rgba(0, 0, 0, alpha))
+	next
+	al_draw_filled_rectangle(0, 0, 15, SCREEN_HEIGHT, al_map_rgba(0, 0, 0, 60))
+	al_draw_filled_rectangle(SCREEN_WIDTH - 15, 0, SCREEN_WIDTH, SCREEN_HEIGHT, al_map_rgba(0, 0, 0, 60))
+	al_draw_filled_rectangle(0, 0, SCREEN_WIDTH, 15, al_map_rgba(0, 0, 0, 60))
+	al_draw_filled_rectangle(0, SCREEN_HEIGHT - 15, SCREEN_WIDTH, SCREEN_HEIGHT, al_map_rgba(0, 0, 0, 60))
+
+	# Transitions
+	if creditsTimer < 10
+		flashAlpha = floor((10 - creditsTimer) / 10.0 * 255)
+		al_draw_filled_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, al_map_rgba(255, 255, 255, flashAlpha))
+	else
+		if creditsTimer < 60
+			fadeAlpha = floor((60 - creditsTimer) / 50.0 * 255)
+			al_draw_filled_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, al_map_rgba(0, 0, 0, fadeAlpha))
+		ok
+	ok
+
+	if creditsTimer > 480
+		fadeAlpha = floor((creditsTimer - 480) / 60.0 * 255)
+		al_draw_filled_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, al_map_rgba(0, 0, 0, fadeAlpha))
+	ok
+
+	# Skip hint
+	if creditsTimer > 60 and creditsTimer < 480
+		skipAlpha = 80 + floor(sin(creditsTimer * 0.1) * 40)
+		al_draw_text(font, al_map_rgba(80, 80, 80, skipAlpha), SCREEN_WIDTH/2, SCREEN_HEIGHT - 30, ALLEGRO_ALIGN_CENTER, "[ SPACE TO SKIP ]")
+	ok
+
+	if creditsTimer >= 540
+		creditsTimer = 0
+		gameState = STATE_MENU
+	ok
+
+func drawDragonScaled x, y, tintColor, extraScale
+	if imgDragon = NULL return ok
+	scale = 0.8 * extraScale
+	imgW = 256 * scale
+	imgH = 256 * scale
+	al_draw_tinted_scaled_bitmap(imgDragon, tintColor, 0, 0, 256, 256, x - imgW/2, y - imgH/2, imgW, imgH, 0)

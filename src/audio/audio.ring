@@ -54,6 +54,10 @@ func initSounds
 	if imgPowerupSpread = NULL ? "Warning: Could not load powerup_spread.png" ok
 	if imgPowerupLife = NULL ? "Warning: Could not load powerup_life.png" ok
 
+	# Load credits dragon image
+	imgDragon = al_load_bitmap("assets/textures/credits/dragon.png")
+	if imgDragon = NULL ? "Warning: Could not load dragon.png" ok
+
 func generateWavFile filename, freq, duration
 	# Skip generation if file already exists
 	if fexists(filename)

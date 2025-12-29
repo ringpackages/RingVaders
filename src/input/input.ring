@@ -18,6 +18,11 @@ func handleKeyDown keycode
 		if gameState = STATE_MENU or gameState = STATE_GAMEOVER
 			startGame()
 		ok
+		if gameState = STATE_CREDITS
+			# Skip credits intro
+			creditsTimer = 0
+			gameState = STATE_MENU
+		ok
 	ok
 	if keycode = ALLEGRO_KEY_P
 		if gameState = STATE_PLAYING
@@ -36,7 +41,11 @@ func handleKeyDown keycode
 		toggleFullscreen()
 	ok
 	if keycode = ALLEGRO_KEY_ESCAPE
-		if gameState = STATE_PLAYER_DEATH or gameState = STATE_GAMEOVER
+		if gameState = STATE_CREDITS
+			# Skip credits intro
+			creditsTimer = 0
+			gameState = STATE_MENU
+		but gameState = STATE_PLAYER_DEATH or gameState = STATE_GAMEOVER
 			# Return to menu instead of exiting
 			gameState = STATE_MENU
 			stopMusic()

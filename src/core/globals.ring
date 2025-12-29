@@ -49,13 +49,16 @@ imgPowerupMulti = NULL
 imgPowerupSpread = NULL
 imgPowerupLife = NULL
 
+# Credits dragon image
+imgDragon = NULL
+
 # FPS tracking
 fpsLastTime = 0
 fpsFrameCount = 0
 currentFPS = 0
 
 # Game state
-gameState = STATE_MENU
+gameState = STATE_CREDITS
 gameScore = 0
 highScore = 0
 gameLives = 3
@@ -99,13 +102,16 @@ gameDifficulty = DIFF_NORMAL
 difficultyNames = ["EASY", "NORMAL", "HARD"]
 
 # CRT effect
-crtEnabled = true
+crtEnabled = false
 
 # Fullscreen mode
 isFullscreen = false
 
 # Wave announcement
 waveAnnounceTimer = 0
+
+# Credits animation
+creditsTimer = 0
 
 # Player
 playerX = BASE_W / 2
