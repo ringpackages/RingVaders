@@ -5,11 +5,11 @@ aPackageInfo = [
 	:developer = "ysdragon",
 	:email = "youssefelkholey@gmail.com",
 	:license = "MIT",
-	:version = "1.0.1",
+	:version = "1.0.3",
 	:ringversion = "1.25",
 	:versions = 	[
 		[
-			:version = "1.0.1",
+			:version = "1.0.3",
 			:branch = "master"
 		]
 	],
@@ -43,6 +43,7 @@ aPackageInfo = [
 		"assets/textures/powerup_rapid.png",
 		"assets/textures/powerup_shield.png",
 		"assets/textures/powerup_spread.png",
+		"assets/textures/credits/dragon.png",
 		"LICENSE",
 		"README.md",
 		"RingVaders.ring",
