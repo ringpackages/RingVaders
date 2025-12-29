@@ -69,7 +69,7 @@ MUSIC_MENU = 1
 MUSIC_MAIN = 2
 MUSIC_BOSS = 3
 
-# Save file names (paths resolved by getSaveDir())
+# Save file names (paths resolved by getSavePath())
 HIGH_SCORE_FILE = "highscore.dat"
 ACHIEVEMENTS_FILE = "achievements.dat"
 
