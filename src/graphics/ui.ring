@@ -101,24 +101,29 @@ func drawUI offsetX
 	
 	# Powerup indicators
 	py = BASE_H - 30
+	px = 10
+
 	if shieldPower > 0 and shieldHits > 0
-		al_draw_text(font, al_map_rgb(90, 159, 212), offsetX + 100, py, ALLEGRO_ALIGN_LEFT, "SHIELD x" + shieldHits)
+		al_draw_text(font, al_map_rgb(90, 159, 212), offsetX + px, py, ALLEGRO_ALIGN_LEFT, "SHIELD x" + shieldHits)
+		px += 130
 	ok
 	if rapidPower > 0
-		al_draw_text(font, C_TERTIARY, offsetX + 180, py, ALLEGRO_ALIGN_LEFT, "RAPID")
+		al_draw_text(font, C_TERTIARY, offsetX + px, py, ALLEGRO_ALIGN_LEFT, "RAPID")
+		px += 80
 	ok
 	if multiPower > 0
-		al_draw_text(font, al_map_rgb(125, 211, 160), offsetX + 250, py, ALLEGRO_ALIGN_LEFT, "MULTI")
+		al_draw_text(font, al_map_rgb(125, 211, 160), offsetX + px, py, ALLEGRO_ALIGN_LEFT, "MULTI")
+		px += 80
 	ok
 	if spreadPower > 0
-		al_draw_text(font, al_map_rgb(212, 166, 90), offsetX + 320, py, ALLEGRO_ALIGN_LEFT, "SPREAD")
+		al_draw_text(font, al_map_rgb(212, 166, 90), offsetX + px, py, ALLEGRO_ALIGN_LEFT, "SPREAD")
 	ok
-	
-	# Audio (sound effects + music)
+
+	# Audio status
 	if soundEnabled
-		al_draw_text(font, al_map_rgb(125, 211, 160), offsetX + 420, py, ALLEGRO_ALIGN_LEFT, "AUDIO: ON")
+		al_draw_text(font, al_map_rgb(125, 211, 160), offsetX + BASE_W - 10, py, ALLEGRO_ALIGN_RIGHT, "AUDIO: ON")
 	else
-		al_draw_text(font, al_map_rgb(150, 150, 150), offsetX + 420, py, ALLEGRO_ALIGN_LEFT, "AUDIO: OFF")
+		al_draw_text(font, al_map_rgb(150, 150, 150), offsetX + BASE_W - 10, py, ALLEGRO_ALIGN_RIGHT, "AUDIO: OFF")
 	ok
 	
 	# Draw achievement popup
