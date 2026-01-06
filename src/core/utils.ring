@@ -85,8 +85,12 @@ func initSaveDir
 	ok
 	
 	# Create directory if it doesn't exist
-	if !fexists(SAVE_DIR)
-		systemSilent("mkdir -p " + char(34) + SAVE_DIR + char(34))
+	if not fexists(SAVE_DIR)
+		if isWindows()
+			systemSilent("mkdir " + char(34) + SAVE_DIR + char(34))
+		but isUnix() and not isAndroid()
+			systemSilent("mkdir -p " + char(34) + SAVE_DIR + char(34))
+		ok
 	ok
 
 func getSavePath filename
