@@ -738,7 +738,7 @@ func drawCredits offsetX
 		if creditsTimer > 480
 			copyAlpha = floor((540 - creditsTimer) / 60.0 * 255)
 		ok
-		al_draw_text(font, al_map_rgba(100, 100, 150, copyAlpha), SCREEN_WIDTH/2, SCREEN_HEIGHT - 60, ALLEGRO_ALIGN_CENTER, "© 2025 ALL RIGHTS RESERVED")
+		al_draw_text(font, al_map_rgba(100, 100, 150, copyAlpha), SCREEN_WIDTH/2, SCREEN_HEIGHT - 60, ALLEGRO_ALIGN_CENTER, "© 2026 ALL RIGHTS RESERVED")
 	ok
 
 	# Scanlines
